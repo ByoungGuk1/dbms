@@ -368,6 +368,8 @@ WHERE ID IN (
 	)
 );
 
+-- select avg(count(post_id)
+
 -- 10) 가장 댓글을 적게 작성한 유저가 작성한 게시글
 SELECT *
 FROM TBL_POST

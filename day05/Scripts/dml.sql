@@ -1,0 +1,20 @@
+-- 게시판 최신글 정렬
+SELECT tp.ID, tp.POST_TITLE, tu.USER_EMAIL
+FROM TBL_POST tp
+JOIN TBL_USER tu
+ON tp.USER_ID = tu.ID
+ORDER BY ID DESC;
+
+--댓글을 단 사용자
+SELECT tr.ID, tr.REPLY_CONTENT, tu.USER_EMAIL
+FROM TBL_REPLY tr
+JOIN TBL_USER tu
+ON tr.USER_ID = tu.ID;
+
+/*
+ * SQL의 실행 순서
+ * 
+ * FROM > JOIN > ON > WHERE > GROUP BY > HAVING > SELECT > ORDERBY
+ * 
+ * */
+
