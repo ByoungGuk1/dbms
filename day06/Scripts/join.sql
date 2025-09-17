@@ -1,0 +1,358 @@
+-- 13) 유저 중 이태희를 태희로 이름 변경
+UPDATE TBL_BUYER
+SET BUYER_NAME = '태희'
+WHERE ID = (
+	SELECT ID
+	FROM TBL_BUYER
+	WHERE BUYER_NAME LIKE '이태희'
+);
+
+-- 14) 신상품 '나이키', '에어맥스 95', 가격 179000원, 재고 200개를 TBL_PRODUCT 테이블에 추가
+INSERT INTO TBL_PRODUCT
+VALUES (SEQ_PRODUCT.NEXTVAL, '나이키', '에어맥스 95', 179000, 200);
+
+-- 15) BUYER_NAME이 '철수'인 사람의 핸드폰 번호를 '010-0000-0000'으로 변경
+SELECT * FROM TBL_BUYER;
+UPDATE TBL_BUYER
+SET BUYER_PHONE = '010-0000-0000'
+WHERE BUYER_NAME LIKE '철수';
+
+-- 16) PRODUCT_NAME이 '후드티'인 상품의 가격을 310000으로 인상
+UPDATE TBL_PRODUCT
+SET PRODUCT_PRICE = 310000
+WHERE PRODUCT_NAME = '후드티';
+
+-- 19) '짱구'가 주문한 상품의 이름과 가격을 조회
+SELECT tbp.*
+FROM (
+	SELECT *
+	FROM TBL_ORDER
+	WHERE BUYER_ID IN (
+		SELECT ID
+		FROM TBL_BUYER
+		WHERE BUYER_NAME LIKE '짱구'
+	)
+) tbo
+JOIN TBL_PRODUCT tbp
+ON tbo.PRODUCT_ID = tbp.ID;
+
+-- 20) 각 구매자별로 주문한 상품의 총 개수를 조회 (구매자 이름, 주문 건수)
+SELECT tbb.BUYER_NAME AS "구매자 이름", tbo."주문 건 수"
+FROM (
+	SELECT BUYER_ID, COUNT(BUYER_ID) AS "주문 건 수"
+	FROM TBL_ORDER
+	GROUP BY BUYER_ID
+) tbo
+JOIN TBL_BUYER tbb
+ON tbo.BUYER_ID = tbb.ID;
+
+-- 21) 가장 많이 주문된 상품 3개의 이름과 주문 횟수를 내림차순으로 조회
+SELECT tbp.PRODUCT_NAME AS "상품 명", tbo."주문 횟수" 
+FROM(
+	SELECT PRODUCT_ID, COUNT(PRODUCT_ID) AS "주문 횟수"
+	FROM TBL_ORDER
+	GROUP BY PRODUCT_ID
+	ORDER BY COUNT(PRODUCT_ID) DESC
+)tbo
+JOIN TBL_PRODUCT tbp
+ON tbo.PRODUCT_ID = tbp.ID
+WHERE ROWNUM <= 3;
+
+-- 22) 여성 구매자들이 주문한 상품 평균 가격을 조회
+SELECT ROUND(AVG(tbp.PRODUCT_PRICE)) 
+FROM(
+	SELECT PRODUCT_ID
+	FROM TBL_ORDER tbo
+	WHERE BUYER_ID IN (
+		SELECT ID
+		FROM TBL_BUYER
+		WHERE BUYER_GENDER = '여'
+	)
+	GROUP BY PRODUCT_ID
+) tbo
+JOIN TBL_PRODUCT tbp
+ON tbo.PRODUCT_ID = tbp.ID;
+
+-- 23) 나이가 30세 이상인 남성 구매자들의 이름과 주소를 조회
+SELECT BUYER_NAME, BUYER_ADDRESS
+FROM TBL_BUYER
+WHERE BUYER_AGE > 30 AND BUYER_GENDER = '남';
+
+-- 24) 재고가 100개 이하인 상품 목록을 브랜드명과 함께 조회
+SELECT PRODUCT_BRAND AS "브랜드 명", PRODUCT_NAME , PRODUCT_PRICE , PRODUCT_STOCK 
+FROM TBL_PRODUCT
+WHERE PRODUCT_STOCK <= 100;
+
+-- 25) '서울시 강북구'에 사는 구매자들의 이름과 핸드폰 번호를 조회
+SELECT BUYER_NAME AS "이름", BUYER_PHONE AS "휴대폰 번호"
+FROM TBL_BUYER
+WHERE BUYER_ADDRESS LIKE '%서울시 강북구%';
+
+-- 26) 주문 상태가 '배송중'인 주문 내역과 해당 주문자의 이름, 상품명을 조회
+SELECT "주문자의 이름", "상품명"
+FROM(
+	SELECT *
+	FROM TBL_ORDER
+	WHERE ORDER_STATUS = '배송중'
+) tbo
+JOIN (
+		SELECT ID, BUYER_NAME AS "주문자의 이름"
+		FROM TBL_BUYER
+	) tbb
+ON tbo.BUYER_ID = tbb.ID
+JOIN (
+		SELECT ID, PRODUCT_NAME AS "상품명"
+		FROM TBL_PRODUCT
+	) tbp
+ON tbo.PRODUCT_ID = tbp.ID;
+
+-- 27) '훈이' 구매자가 주문한 상품들의 총 가격 합계 조회
+SELECT SUM(tbp.PRODUCT_PRICE) 
+FROM(
+	SELECT ID
+	FROM TBL_BUYER
+	WHERE BUYER_NAME LIKE '훈이'
+) tbb
+JOIN TBL_ORDER tbo
+ON tbb.ID = tbo.BUYER_ID
+JOIN TBL_PRODUCT tbp
+ON tbo.PRODUCT_ID = tbp.ID;
+
+-- 28) 상품별 기대 매출 조회
+SELECT tbp.PRODUCT_NAME AS 상품명, tbp.PRODUCT_PRICE * "판매수" AS "기대 매출"
+FROM(
+	SELECT PRODUCT_ID, COUNT(PRODUCT_ID) AS "판매수"
+	FROM TBL_ORDER
+	GROUP BY PRODUCT_ID
+) tbo
+JOIN TBL_PRODUCT tbp
+ON tbo.PRODUCT_ID = tbp.ID;
+
+-- 29) '유리' 구매자의 주문 내역 중 가장 최근 주문한 상품의 이름과 주문일자를 조회
+SELECT tbp.PRODUCT_NAME AS "상품명", tbo.ORDER_START_DATE AS "주문일자"
+FROM(
+	SELECT tbo.*
+	FROM(
+		SELECT ID
+		FROM TBL_BUYER
+		WHERE BUYER_NAME = '유리'
+	) tbb
+	JOIN TBL_ORDER tbo
+	ON tbb.ID = tbo.BUYER_ID
+	ORDER BY tbo.ID DESC
+	FETCH FIRST 1 ROWS ONLY
+) tbo
+JOIN TBL_PRODUCT tbp
+ON tbo.PRODUCT_ID = tbp.ID;
+
+-- 30) 구매자별로 주문 완료 일자가 가장 빠른 주문 내역을 조회
+SELECT BUYER_ID, MAX(ORDER_START_DATE) AS "최근 주문 시간"
+FROM TBL_ORDER
+GROUP BY BUYER_ID;
+	
+-- 31) '스웨이드' 브랜드의 모든 상품 주문 건수를 조회
+SELECT *
+FROM TBL_ORDER
+WHERE PRODUCT_ID IN (
+	SELECT ID 
+	FROM TBL_PRODUCT
+	WHERE PRODUCT_BRAND LIKE '스웨이드'
+);
+
+-- 32) '봉미선' 구매자가 주문한 상품들 중 가격이 5만원 이상인 상품의 이름과 가격을 조회
+SELECT tbp.PRODUCT_NAME, tbp.PRODUCT_PRICE
+FROM TBL_ORDER tbo
+JOIN (
+	SELECT ID
+	FROM TBL_BUYER
+	WHERE BUYER_NAME LIKE '봉미선'
+) tbb
+ON tbo.BUYER_ID = tbb.ID
+JOIN (
+	SELECT *
+	FROM TBL_PRODUCT
+	WHERE PRODUCT_PRICE > 50000
+) tbp
+ON tbo.PRODUCT_ID = tbp.ID; 
+
+-- 33) '수지' 구매자의 주소를 '서울시 송파구'로 수정
+UPDATE TBL_BUYER
+SET BUYER_ADDRESS = '서울시 송파구'
+WHERE BUYER_NAME = '수지';
+
+-- 34) 주문 상태가 '배송중'인 주문을 '배송완료'로 변경
+UPDATE TBL_ORDER
+SET ORDER_STATUS = '배송완료'
+WHERE ORDER_STATUS = '배송중';
+
+-- 35) 25세 이하인 구매자의 이름, 나이, 구매한 상품명 조회
+SELECT "구매자의 이름", "구매자의 나이", tbp.PRODUCT_NAME AS "구매한 상품명"
+FROM TBL_ORDER tbo
+JOIN (
+	SELECT ID, BUYER_NAME AS "구매자의 이름", BUYER_AGE AS "구매자의 나이"
+	FROM TBL_BUYER
+	WHERE BUYER_AGE <= 25
+) tbb
+ON tbo.BUYER_ID = tbb.ID
+JOIN TBL_PRODUCT tbp
+ON tbo.PRODUCT_ID = tbp.ID ;
+
+-- 36) 특정 상품(예: '볼캡')의 재고 수량을 0으로 변경
+UPDATE TBL_PRODUCT
+SET PRODUCT_STOCK = 0
+WHERE PRODUCT_NAME LIKE '볼캡';
+
+-- 37) '아이더' 브랜드 상품을 주문한 구매자들의 이름과 연락처를 조회
+SELECT tbb.BUYER_NAME AS "구매자의 이름", tbb.BUYER_PHONE AS "연락처"
+FROM TBL_ORDER tbo
+JOIN (
+	SELECT ID
+	FROM TBL_PRODUCT tbp
+	WHERE PRODUCT_BRAND LIKE '아이더'
+) tbp
+ON tbo.PRODUCT_ID = tbp.ID
+JOIN TBL_BUYER tbb
+ON tbo.BUYER_ID = tbb.ID;
+
+-- 38) '맹구' 구매자가 주문한 상품들의 가격 총합을 계산
+SELECT SUM(tbp.PRODUCT_PRICE) 
+FROM TBL_ORDER tbo
+JOIN (
+	SELECT ID
+	FROM TBL_BUYER
+	WHERE BUYER_NAME LIKE '맹구'
+) tbb
+ON tbo.BUYER_ID = tbb.ID
+JOIN TBL_PRODUCT tbp
+ON tbo.PRODUCT_ID = tbp.ID;
+
+-- 39) 상품 할인 중 모든 30% 할인가격 조회
+SELECT PRODUCT_PRICE * (1 - 0.3) AS "30% 할인된 가격"
+FROM TBL_PRODUCT;
+
+-- 40) 구매자별로 주문한 상품 개수를 조회
+SELECT tbb.BUYER_NAME AS "구매자", tbo."주문한 상품 개수" 
+FROM(
+	SELECT BUYER_ID, COUNT(BUYER_ID) AS "주문한 상품 개수"
+	FROM TBL_ORDER
+	GROUP BY BUYER_ID
+) tbo
+JOIN TBL_BUYER tbb
+ON tbo.BUYER_ID = tbb.ID;
+	
+-- 41) '짱구' 구매자가 주문한 상품 중 가격이 가장 비싼 상품을 조회
+SELECT tbp.PRODUCT_PRICE
+FROM TBL_ORDER tbo
+JOIN(
+	SELECT ID
+	FROM TBL_BUYER
+	WHERE BUYER_NAME = '짱구'
+) tbb
+ON tbo.BUYER_ID = tbb.ID
+JOIN TBL_PRODUCT tbp
+ON tbo.PRODUCT_ID = tbp.ID
+ORDER BY tbp.PRODUCT_PRICE DESC
+FETCH FIRST 1 ROWS ONLY;
+
+-- 42) '철수'와 '훈이'가 주문한 상품들을 조회하되 중복 없이 출력
+SELECT *
+FROM TBL_ORDER
+WHERE BUYER_ID IN (
+	SELECT ID
+	FROM TBL_BUYER
+	WHERE BUYER_NAME LIKE '%철수' OR BUYER_NAME LIKE '%훈이'
+);
+-- 43) '강북구'에 사는 여성 구매자들의 주문 내역을 조회
+SELECT *
+FROM TBL_ORDER
+WHERE BUYER_ID IN (
+	SELECT ID
+	FROM TBL_BUYER
+	WHERE BUYER_ADDRESS LIKE '%강북구%' AND BUYER_GENDER = '여'
+);
+-- 44) 구매자 이름과 그가 주문한 상품 이름, 주문 상태를 함께 출력
+SELECT "구매자 이름", tbp.PRODUCT_NAME AS "주문한 상품 이름", tbo.ORDER_STATUS AS "주문 상태"
+FROM TBL_ORDER tbo
+JOIN (
+	SELECT ID, BUYER_NAME AS "구매자 이름"
+	FROM TBL_BUYER
+	WHERE BUYER_NAME = '철수'
+) tbb
+ON tbo.BUYER_ID = tbb.ID
+JOIN TBL_PRODUCT tbp
+ON tbo.PRODUCT_ID = tbp.ID; 
+
+-- 45) 모든 상품의 평균 가격을 구하고, 평균 이상 가격인 상품들을 조회
+SELECT *
+FROM TBL_PRODUCT
+WHERE PRODUCT_PRICE >= (
+	SELECT AVG(PRODUCT_PRICE) 
+	FROM TBL_PRODUCT
+);
+
+-- 46) '스파오' 브랜드 상품의 재고를 50개 이하인 경우 재고를 100개로 수정
+UPDATE TBL_PRODUCT
+SET PRODUCT_STOCK = 100
+WHERE ID IN (
+	SELECT ID
+	FROM TBL_PRODUCT
+	WHERE PRODUCT_BRAND LIKE '스파오' AND PRODUCT_STOCK <= 50
+);
+
+---
+
+CREATE  TABLE TBL_EMPLOYEE(
+	ID NUMBER CONSTRAINT PK_ICOME PRIMARY KEY,
+	EMPLOYEE_NAME VARCHAR2(255)
+);
+
+CREATE TABLE TBL_INCOME(
+	ID NUMBER CONSTRAINT PK_ICOME PRIMARY KEY,
+	INCOME NUMBER,
+	INCOME_DATE TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+	EMPLOYEE_ID NUMBER,
+	CONSTRAINT FK_INCOME_EMPLOEE FOREIGN KEY(EMPLOYEE_ID),
+	REFERENCES TBL_EMPLOYEE(ID)
+);
+
+INSERT INTO TBL_EMPLOYEE
+VALUES (1, '홍길동'); 
+
+INSERT INTO TBL_EMPLOYEE
+VALUES (2, '장보고'); 
+
+INSERT INTO TBL_EMPLOYEE
+VALUES (3, '이순신');
+
+INSERT INTO TBL_INCOME(ID, INCOME, EMPLOYEE_ID)
+VALUES (1, 100000, 1);
+
+INSERT INTO TBL_INCOME(ID, INCOME, EMPLOYEE_ID)
+VALUES (2, 150000, 1);
+
+SELECT *
+FROM TBL_INCOME ti
+OUTER JOIN TBL_EMPLOYEE te
+ON ti.EMPLOYEE_ID = te.ID;
+
+
+-- 보류
+-- 17) BUYER_NAME이 '맹구'인 구매자의 정보를 TBL_BUYER에서 삭제 (단, 주문 이력이 있을 경우 삭제되지 않음)
+--SELECT *
+--FROM TBL_BUYER
+--WHERE ID = (
+--	SELECT tbb.ID , 
+--	FROM(
+--		SELECT *
+--		FROM TBL_BUYER
+--		WHERE BUYER_NAME LIKE '맹구'
+--	) tbb
+--	JOIN TBL_ORDER tbo
+--	ON tbo.BUYER_ID = tbb.ID
+--	GROUP BY tbb.ID
+--)
+
+-- 18) PRODUCT_NAME이 '텀블러'인 상품을 TBL_PRODUCT 테이블에서 삭제
+SELECT *
+FROM TBL_PRODUCT
+WHERE PRODUCT_NAME = '텀블러';
